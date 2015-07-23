@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PouchDb + Express demo</title>
+  </head>
+  <body>
+    <div id="main">
+      <p>PouchDb + Express Demo</p>
+      <p>
+        <button id="fooGetButton">Foo GET</button>
+        <button id="fooPutButton">Foo PUT</button>
+        <input id="fooIdInput" type="text" />
+      </p>
+      <p>Open the developer console</p>
+    </div>
+
+    <script src="//cdn.jsdelivr.net/pouchdb/3.0.6/pouchdb.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", onDocumentLoaded);
+
+      function onDocumentLoaded() {
+        var db = new PouchDB('todos');
+        var remoteCouch = 'http://localhost:8099/db/app';
+
+        db.replicate.to(remoteCouch, { live: true }, function onDbSync(err, result) {
+          if (err) {
+            console.error(err);
+          }
+          else {
+            console.log(result);
+          }
+        });
+
+        var fooGetButton = document.getElementById('fooGetButton');
+        var fooPutButton = document.getElementById('fooPutButton');
+        var fooIdInput = document.getElementById('fooIdInput');
+
+        fooGetButton.addEventListener('click', function fooGetClicked() {
+          db.get('foo_'+fooIdInput.value, function onDbFooGet(err, result) {
+            if (err) {
+              console.error(err);
+            }
+            else {
+              console.log(result);
+            }
+          });
+        });
+
+        fooPutButton.addEventListener('click', function fooPutClicked() {
+          db.put({
+            _id: 'foo_'+fooIdInput.value,
+            name: 'foo',
+            bar: 'baz',
+            date: Date.now(),
+          }, function onDbFooPut(err, result) {
+            if (err) {
+              console.error(err);
+            }
+            else {
+              console.log(result);
+              try {
+                var id = parseInt(fooIdInput.value, 10);
+                fooIdInput.value = ''+(1+id);
+              }
+              catch (ex) {
+                //Do nothing
+              }
+            }
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
