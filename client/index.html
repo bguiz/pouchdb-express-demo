@@ -6,23 +6,37 @@
   <body>
     <div id="main">
       <p>PouchDb + Express Demo</p>
-      <p>
+      <div>
+        <p>Foo</p>
         <button id="fooGetButton">Foo GET</button>
         <button id="fooPutButton">Foo PUT</button>
-        <input id="fooIdInput" type="text" />
-      </p>
+        <input id="fooIdInput" placeholder="Foo ID" type="text" />
+      </div>
+      <div>
+        <p>Auth</p>
+        <input id="userIdInput" type="text" placeholder="User ID"/>
+        <input id="userPwInput" type="password" placeholder="Password"/>
+        <button id="userSignupButton">Sign Up</button>
+        <button id="userLoginButton">Log In</button>
+        <button id="userLogoutButton">Log Out</button>
+      </div>
       <p>Open the developer console</p>
     </div>
 
-    <script src="//cdn.jsdelivr.net/pouchdb/3.0.6/pouchdb.min.js"></script>
+    <script src="/js/3rd/pouchdb/pouchdb-3.0.6.min.js"></script>
+    <script src="/js/3rd/pouchdb-authentication/pouchdb.authentication-0.4.1.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", onDocumentLoaded);
 
+      var remoteDbUrl = 'http://localhost:8099/db/app';
       function onDocumentLoaded() {
-        var db = new PouchDB('todos');
-        var remoteCouch = 'http://localhost:8099/db/app';
+        var db = new PouchDB(remoteDbUrl);
+        var localDb = new PouchDB('localDb');
 
-        db.replicate.to(remoteCouch, { live: true }, function onDbSync(err, result) {
+        localDb.sync(db, {
+          live: true,
+          retry: true,
+        }, function onDbSync(err, result) {
           if (err) {
             console.error(err);
           }
@@ -34,6 +48,63 @@
         var fooGetButton = document.getElementById('fooGetButton');
         var fooPutButton = document.getElementById('fooPutButton');
         var fooIdInput = document.getElementById('fooIdInput');
+        var userIdInput = document.getElementById('userIdInput');
+        var userPwInput = document.getElementById('userPwInput');
+        var userSignupButton = document.getElementById('userSignupButton');
+        var userLoginButton = document.getElementById('userLoginButton');
+        var userLogoutButton = document.getElementById('userLogoutButton');
+
+        userSignupButton.addEventListener('click', function() {
+          db.signup(userIdInput.value, userPwInput.value, {
+            cache: false,
+            metadata: {
+              signupDate: Date.now(),
+            },
+          })
+            .then(function onUserSignupSuccess(result) {
+              console.log('Signup success', result);
+            })
+            .catch(function onUserSignupFailure(err) {
+              switch (err.name) {
+              case 'conflict':
+                console.error('Signup conflict', err);
+                break;
+              case 'forbidden':
+                console.error('Signup forbidden', err);
+                break;
+              default:
+                console.error('Signup error', err);
+              }
+            });
+        });
+
+        userLoginButton.addEventListener('click', function() {
+          db.login(userIdInput.value, userPwInput.value, {
+            cache: false,
+          })
+            .then(function onUserLoginSuccess(result) {
+              console.log('Login success', result);
+            })
+            .catch(function onUserLoginFailure(err) {
+              switch (err.name) {
+                case 'unauthorized':
+                  console.error('Login unauthorised', err);
+                  break;
+                default:
+                  console.error('Login error', err);
+              }
+            });
+        });
+
+        userLogoutButton.addEventListener('click', function onClickUserLogoutButton() {
+          db.logout()
+            .then(function onUserLogoutSuccess(result) {
+              console.log('Logout success', result);
+            })
+            .catch(function onUserLogoutFailure(err) {
+              console.error('Logout error', err);
+            });
+        });
 
         fooGetButton.addEventListener('click', function fooGetClicked() {
           db.get('foo_'+fooIdInput.value, function onDbFooGet(err, result) {

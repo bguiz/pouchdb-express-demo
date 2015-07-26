@@ -4,6 +4,7 @@ var express = require('express');
 var pouchDb = require('pouchdb');
 var expressPouchDb = require('express-pouchdb');
 var pouchDbUpsert = require('pouchdb-upsert');
+var pouchDbAuthentication = require('pouchdb-authentication');
 
 var server = express({
   // config
